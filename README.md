@@ -15,12 +15,12 @@ We then trimmed reads using `trimmomatic` v0.39:
 trimmomatic PE -threads 4 -phred33 ${1}_R1.fq.gz ${1}_R2.fq.gz ILLUMINACLIP:NexteraPE-PE:2:25:10 -baseout ${1}.fq.gz LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:25
 ```
 
-We then aligned the reads to the reference genome of the M haplotype of *Formica selysi* using `bwa mem` vXXXX in a loop, where `$1` is the sample name and `$2` the path to the genome.
+We then aligned the reads to the reference genome of the M haplotype of *Formica selysi* using `bwa mem` v0.7.17 in a loop, where `$1` is the sample name and `$2` the path to the genome.
 ```bash
 bwa mem -t 16 $2 ${1}_1P.fq.gz ${1}_2P.fq.gz | samtools view -b - > ${1}.bam
 ```
 
-We then filtered the bam files and added read group (still in a loop with the sample name as `$1`):
+We then filtered the bam files and added read group (still in a loop with the sample name as `$1`) with `samtools` v1.15.1:
 ```bash
 # fills in mate coordinates and insert size fields
 samtools fixmate -m ${1}.bam - | \
@@ -41,15 +41,16 @@ We then merged all bam files together:
 samtools merge -r -o merged.bam *-RG.bam
 ```
 
-Finally, we called variants with GATK version xxxx separately for each chromosome in a loop, where `$1` is the scaffold name:
+We called variants with `GATK` v4.2.6.1 separately for each chromosome in a loop, where `$1` is the scaffold name:
 ```bash
 gatk HaplotypeCaller -I merged.bam -O ${1}.vcf -R ../genome/FsiM_PB_v5.fasta -L $1 --max-reads-per-alignment-start 0
 ```
-and merged all vcfs together with `bcftools` v XXXX
+and merged all vcfs together with `bcftools` v1.15.1:
 ```bash
 bcftools concat -o pressilabris_full_raw.vcf -O v FsiM_PB_v5_scf*.vcf
 ```
 
+Finally, we filtered the resulting vcf file with `vcftools` v0.1.14:
 ```bash
 vcftools --vcf pressilabris_full_raw.vcf \
 --remove-indels \
